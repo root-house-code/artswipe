@@ -55,6 +55,7 @@ export async function fetchPage(page = 1, limit = 100) {
     hasimage: '1',
     fields: FIELDS,
     sort: 'rank',
+    classification: 'Prints',
   });
 
   const url = `${HARVARD_API}?${params}`;

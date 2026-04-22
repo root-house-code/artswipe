@@ -2,7 +2,7 @@
 // Docs: https://api.artic.edu/docs/
 // No API key required. Be polite: <1 req/sec, keep page size reasonable.
 
-const AIC_API = 'https://api.artic.edu/api/v1/artworks';
+const AIC_API = 'https://api.artic.edu/api/v1/artworks/search';
 const IIIF_BASE = 'https://www.artic.edu/iiif/2';
 
 // Fields we need. Keeping the list tight reduces response size.
@@ -49,8 +49,17 @@ function normalize(item) {
  * @param {number} limit - items per page (max 100)
  * @returns {Promise<{items: Array, hasMore: boolean}>}
  */
+const PRINT_QUERY = JSON.stringify({
+  bool: {
+    must: [
+      { term: { is_public_domain: true } },
+      { match: { classification_title: 'prints' } },
+    ],
+  },
+});
+
 export async function fetchPage(page = 1, limit = 100) {
-  const url = `${AIC_API}?page=${page}&limit=${limit}&fields=${FIELDS}`;
+  const url = `${AIC_API}?page=${page}&limit=${limit}&fields=${FIELDS}&query=${encodeURIComponent(PRINT_QUERY)}`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -58,11 +67,7 @@ export async function fetchPage(page = 1, limit = 100) {
   }
   const payload = await response.json();
 
-  // Keep only items that have an image AND are public domain.
-  // Non-public-domain items often have degraded or unavailable IIIF images.
-  const usable = (payload.data || []).filter(
-    item => item.image_id && item.is_public_domain
-  );
+  const usable = (payload.data || []).filter(item => item.image_id);
 
   const items = usable.map(normalize);
 
